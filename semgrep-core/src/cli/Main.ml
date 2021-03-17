@@ -1173,14 +1173,22 @@ let all_actions () = [
   (*e: [[Main_semgrep_core.all_actions]] dumper cases *)
   "-dump_rule", " <file>",
   Common.mk_action_1_arg dump_rule;
+
   "-dump_tree_sitter_cst", " <file>",
-  Common.mk_action_1_arg Test_parsing.dump_tree_sitter_cst;
+  Common.mk_action_1_arg (fun file ->
+    Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file
+  );
+
   "-dump_tree_sitter_pattern_cst", " <file>",
   Common.mk_action_1_arg (fun file ->
     Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file
   );
+
   "-dump_ast_pfff", " <file>",
-  Common.mk_action_1_arg Test_parsing.dump_ast_pfff;
+  Common.mk_action_1_arg (fun file ->
+    Test_parsing.dump_pfff_ast (lang_of_string !lang) file
+  );
+
   "-dump_il", " <file>",
   Common.mk_action_1_arg Datalog_experiment.dump_il;
   "-diff_pfff_tree_sitter", " <file>",

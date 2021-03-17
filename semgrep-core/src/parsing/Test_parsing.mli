@@ -9,8 +9,9 @@ val parsing_regressions: Lang.t ->
 
 val test_parse_tree_sitter: string -> Common.filename list -> unit
 
-val dump_tree_sitter_cst: Common.filename -> unit
-val dump_ast_pfff: Common.filename -> unit
+val dump_tree_sitter_cst: Lang.t -> Common.filename -> unit
+val dump_pfff_ast: Lang.t -> Common.filename -> unit
+
 val diff_pfff_tree_sitter: Common.filename list -> unit
 
 val test_parse_rules: Common.filename list -> unit
