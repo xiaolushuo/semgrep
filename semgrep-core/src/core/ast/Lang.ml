@@ -111,7 +111,7 @@ let langs_of_filename filename =
   match typ with
   | FT.PL (FT.Web (FT.Js)) -> [Javascript] (* Add TypeScript too? *)
   | FT.PL (FT.Web (FT.TypeScript)) -> [Typescript]
-  | FT.PL (FT.Python) -> [Python;Python2;Python2]
+  | FT.PL (FT.Python) -> [Python;Python2;Python3]
   (* .h could also be Cpp at some point *)
   | FT.PL (FT.C ("c")) -> [C]
   | FT.PL (FT.C ("h")) -> [C;Cplusplus]
