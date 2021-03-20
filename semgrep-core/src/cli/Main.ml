@@ -1174,7 +1174,8 @@ let all_actions () = [
   "-dump_rule", " <file>",
   Common.mk_action_1_arg dump_rule;
 
-  "-dump_tree_sitter_cst", " <file>",
+  "-dump_tree_sitter_cst",
+  " <file> dump the CST obtained from a tree-sitter parser",
   Common.mk_action_1_arg (fun file ->
     Test_parsing.dump_tree_sitter_cst (lang_of_string !lang) file
   );
@@ -1184,7 +1185,8 @@ let all_actions () = [
     Parse_pattern.dump_tree_sitter_pattern_cst (lang_of_string !lang) file
   );
 
-  "-dump_ast_pfff", " <file>",
+  "-dump_pfff_ast",
+  " <file> dump the generic AST obtained from a pfff parser",
   Common.mk_action_1_arg (fun file ->
     Test_parsing.dump_pfff_ast (lang_of_string !lang) file
   );

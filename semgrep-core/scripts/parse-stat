@@ -1,0 +1,65 @@
+#! /usr/bin/env bash
+#
+# Main entry point for running parsing stats and uploading them to the
+# semgrep dashboard.
+#
+set -eu -o pipefail
+
+progname=$(basename "$0")
+
+usage() {
+  cat <<EOF
+Main entry point for running parsing stats and uploading them to the
+semgrep dashboard.
+
+Usage: $progname lang LANGUAGE  # run stats for a single language
+       $progname all            # run for all languages and upload results
+       $progname help           # print this message
+EOF
+}
+
+root_dir=$(git rev-parse --show-toplevel)
+semgrep_core_dir=$root_dir/semgrep-core
+
+# These are language names as supported by semgrep-core. Some of them
+# use a tree-sitter parser, some don't.
+#
+languages="
+  c
+  cpp
+  csharp
+  go
+  java
+  javascript
+  json
+  kotlin
+  lua
+  ocaml
+  php
+  python
+  r
+  ruby
+  rust
+  typescript
+  yaml
+"
+
+pfff_languages="
+  c, c++, cpp, cs, go, golang, java, javascript, js, json, kt, lua, ml, ocaml, php, py, python, python2, python3, r, rb, rs, ruby, rust, ts, typescript, yaml
+"
+
+tree_sitter_languages="
+  c
+  cpp
+  csharp
+  go
+  java
+  javascript
+  kotlin
+  lua
+  r
+  ruby
+  rust
+  tsx
+  typescript
+"
