@@ -95,9 +95,11 @@ let sanitized config instr =
 
 let rec tainted fun_env env config exp =
   let go_into = function
-    | Lvalue {base=Var var;_}
+    | Lvalue {base=Var var; _}
       -> VarMap.mem (str_of_name var) env
          || Hashtbl.mem fun_env (str_of_name var)
+    | Lvalue {base=VarSpecial(This, _); offset=Dot fld; _}
+      -> Hashtbl.mem fun_env (str_of_name fld)
     | Lvalue _
     | Literal _
     | FixmeExp _
@@ -163,7 +165,7 @@ let (transfer: config -> fun_env -> IL.name option -> flow:F.cfg -> unit Dataflo
 
    | NReturn (_, e) when tainted fun_env in' config e ->
        (match opt_name with
-        | Some var -> pr2 (str_of_name var); pr2 "IS TAINTED"; Hashtbl.add fun_env (str_of_name var) ()
+        | Some var -> Hashtbl.add fun_env (str_of_name var) ()
         | None     -> ())
 
    | Enter | Exit | TrueNode | FalseNode | Join
