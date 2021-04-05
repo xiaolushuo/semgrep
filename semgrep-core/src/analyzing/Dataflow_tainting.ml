@@ -41,6 +41,9 @@ module VarMap = Dataflow.VarMap
 type mapping = unit Dataflow.mapping
 (*e: type [[Dataflow_tainting.mapping]] *)
 
+(* Marks tainted functions. *)
+type fun_env = (Dataflow.var, unit) Hashtbl.t
+
 (*s: type [[Dataflow_tainting.config]] *)
 (* this can use semgrep patterns under the hood *)
 type config = {
@@ -90,32 +93,33 @@ let sanitized config instr =
   | ___else___
     -> false
 
-let rec tainted env config exp =
+let rec tainted fun_env env config exp =
   let go_into = function
     | Lvalue {base=Var var;_}
       -> VarMap.mem (str_of_name var) env
+         || Hashtbl.mem fun_env (str_of_name var)
     | Lvalue _
     | Literal _
     | FixmeExp _
       -> false
     | Composite (_, (_, es, _))
     | Operator (_, es)
-      -> List.exists (tainted env config) es
+      -> List.exists (tainted fun_env env config) es
     | Record fields
-      -> List.exists (fun (_, e) -> tainted env config e) fields
+      -> List.exists (fun (_, e) -> tainted fun_env env config e) fields
     | Cast (_, e)
-      -> tainted env config e
+      -> tainted fun_env env config e
   in
   config.is_source_exp exp || go_into exp.e
 
-let tainted_instr env config instr =
+let tainted_instr fun_env env config instr =
+  let is_tainted = tainted fun_env env config in
   let tainted_args = function
-    | Assign (_, e) -> tainted env config e
+    | Assign (_, e) -> is_tainted e
     | AssignAnon _ -> false (* TODO *)
     | Call (_, {e=Lvalue({base=Var(("source",_),_);_}); _}, []) -> true
-    | Call (_, e, args) ->
-        tainted env config e || List.exists (tainted env config) args
-    | CallSpecial (_, _, args) -> List.exists (tainted env config) args
+    | Call (_, e, args) -> is_tainted e || List.exists is_tainted args
+    | CallSpecial (_, _, args) -> List.exists is_tainted args
     | FixmeInstr _ -> false
   in
   not (sanitized config instr)
@@ -137,8 +141,8 @@ let diff =
 (*e: constant [[Dataflow_tainting.diff]] *)
 
 (*s: function [[Dataflow_tainting.transfer]] *)
-let (transfer: config -> flow:F.cfg -> unit Dataflow.transfn) =
-  fun config ~flow ->
+let (transfer: config -> fun_env -> IL.name option -> flow:F.cfg -> unit Dataflow.transfn) =
+  fun config fun_env opt_name ~flow ->
   (* the transfer function to update the mapping at node index ni *)
   fun mapping ni ->
 
@@ -154,8 +158,14 @@ let (transfer: config -> flow:F.cfg -> unit Dataflow.transfn) =
    | NInstr x ->
        (* TODO: use metavar in sink to know which argument we should check
         * for taint? *)
-       if config.is_sink x && tainted_instr in' config x
+       if config.is_sink x && tainted_instr fun_env in' config x
        then config.found_tainted_sink x in'
+
+   | NReturn (_, e) when tainted fun_env in' config e ->
+       (match opt_name with
+        | Some var -> pr2 (str_of_name var); pr2 "IS TAINTED"; Hashtbl.add fun_env (str_of_name var) ()
+        | None     -> ())
+
    | Enter | Exit | TrueNode | FalseNode | Join
    | NCond _ | NGoto _ | NReturn _ | NThrow _ | NOther _
    | NTodo _ -> ()
@@ -165,7 +175,7 @@ let (transfer: config -> flow:F.cfg -> unit Dataflow.transfn) =
   let gen_ni_opt =
     match node.F.n with
     | NInstr x ->
-        if tainted_instr in' config x then
+        if tainted_instr fun_env in' config x then
           IL.lvar_of_instr_opt x
         else
           None
@@ -183,7 +193,7 @@ let (transfer: config -> flow:F.cfg -> unit Dataflow.transfn) =
     *)
     match node.F.n with
     | NInstr x ->
-        if tainted_instr in' config x then
+        if tainted_instr fun_env in' config x then
           None
         else
           (* all clean arguments should reset the taint *)
@@ -205,11 +215,12 @@ let (transfer: config -> flow:F.cfg -> unit Dataflow.transfn) =
 (*****************************************************************************)
 
 (*s: function [[Dataflow_tainting.fixpoint]] *)
-let (fixpoint: config -> F.cfg -> mapping) = fun config flow ->
+let (fixpoint: config -> fun_env -> IL.name option -> F.cfg -> mapping) =
+  fun config fun_env opt_name flow ->
   DataflowX.fixpoint
     ~eq:(fun () () -> true)
     ~init:(DataflowX.new_node_array flow (Dataflow.empty_inout ()))
-    ~trans:(transfer config ~flow)
+    ~trans:(transfer config fun_env opt_name ~flow)
     (* tainting is a forward analysis! *)
     ~forward:true
     ~flow

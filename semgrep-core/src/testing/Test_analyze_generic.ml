@@ -146,7 +146,8 @@ let test_dfg_tainting file =
                         is_sanitizer = (fun _ -> false);
                         found_tainted_sink = (fun _ _ -> ());
                       } in
-         let mapping = Dataflow_tainting.fixpoint config flow in
+         let fun_env = Hashtbl.create 2 in
+         let mapping = Dataflow_tainting.fixpoint config fun_env None flow in
          DataflowY.display_mapping flow mapping (fun () -> "()");
      | _ -> ()
     )
