@@ -353,6 +353,7 @@ let is_local_or_global_ctx env lang =
       match lang with
       (* true for Java so that we can type class fields *)
       | Lang.Java -> true
+      | Lang.Typescript -> true
       | _ -> false
     )
 (*e: function [[Naming_AST.is_local_or_global_ctx]] *)
@@ -367,7 +368,8 @@ let resolved_name_kind env lang =
       (* true for Java so that we can type class fields.
        * alt: use a different scope.class?
       *)
-      | Lang.Java -> EnclosedVar
+      | Lang.Java
+      | Lang.Typescript -> EnclosedVar
       | _ -> raise Impossible
     )
 (*e: function [[Naming_AST.resolved_name_kind]] *)
@@ -445,6 +447,15 @@ let resolve2 lang prog =
             let resolved_type = Typing.get_resolved_type lang (vinit, vtype) in
             let resolved = { entname = resolved_name_kind env lang, sid; enttype = resolved_type } in add_ident_current_scope id resolved env.names;
             set_resolved env id_info resolved;
+
+        | { name = EN (Id (id, id_info)); _},
+          FuncDef _ when is_local_or_global_ctx env lang ->
+            (* name resolution *)
+            let sid = H.gensym () in
+            let resolved = untyped_ent(resolved_name_kind env lang, sid) in
+            add_ident_current_scope id resolved env.names;
+            set_resolved env id_info resolved;
+            k x;
 
         | { name = EN (Id (id, id_info)); _}, UseOuterDecl tok ->
             let s = Parse_info.str_of_info tok in
