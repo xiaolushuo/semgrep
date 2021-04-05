@@ -170,7 +170,7 @@ and offset =
    *  objects/records (fields), classes (static fields), but also
    *  packages, modules, namespaces depending on the type of 'var' above.
   *)
-  | Dot   of ident
+  | Dot   of name
   | Index of exp
   (*e: type [[IL.offset]] *)
 
