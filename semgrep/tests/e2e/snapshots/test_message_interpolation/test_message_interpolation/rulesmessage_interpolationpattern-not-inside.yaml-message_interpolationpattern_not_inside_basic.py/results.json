@@ -26,8 +26,10 @@
               "offset": 85
             },
             "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "D"
             }
           }
         },

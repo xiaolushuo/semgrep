@@ -37,7 +37,7 @@
             },
             "unique_id": {
               "kind": "Local",
-              "sid": 18,
+              "sid": 19,
               "type": "id",
               "value": "user"
             }
@@ -56,7 +56,7 @@
             },
             "unique_id": {
               "kind": "Local",
-              "sid": 20,
+              "sid": 21,
               "type": "id",
               "value": "new_password"
             }
@@ -157,7 +157,7 @@
             },
             "unique_id": {
               "kind": "Local",
-              "sid": 25,
+              "sid": 26,
               "type": "id",
               "value": "user"
             }
@@ -176,7 +176,7 @@
             },
             "unique_id": {
               "kind": "Param",
-              "sid": 24,
+              "sid": 25,
               "type": "id",
               "value": "password"
             }

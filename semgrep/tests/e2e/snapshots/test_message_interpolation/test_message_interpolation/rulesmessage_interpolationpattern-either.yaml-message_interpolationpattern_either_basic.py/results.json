@@ -26,8 +26,10 @@
               "offset": 4
             },
             "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
+              "kind": "Global",
+              "sid": 1,
+              "type": "id",
+              "value": "one"
             }
           }
         },
@@ -64,8 +66,10 @@
               "offset": 30
             },
             "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
+              "kind": "Global",
+              "sid": 3,
+              "type": "id",
+              "value": "two"
             }
           }
         },
@@ -102,8 +106,10 @@
               "offset": 56
             },
             "unique_id": {
-              "md5sum": "<masked in tests>",
-              "type": "AST"
+              "kind": "Global",
+              "sid": 5,
+              "type": "id",
+              "value": "three"
             }
           }
         },
