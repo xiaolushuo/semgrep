@@ -3034,15 +3034,18 @@ let parse file =
     )
 
 let parse_expression_or_compilation_unit str =
-  let res = Tree_sitter_c_sharp.Parse.string str in
+  (* ugly: coupling: see grammar.js of csharp.
+   * todo: will need to adjust position information in parsing errors! *)
+  let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+  (* If possible, we always prefer to parse a pattern as an expression than
+   * as a program, since an expression is also a statement, but a statement
+   * is not an expression! E.g., `Foo()` as an statement will not match
+   * `if (null == StaticMethod()) ...` whereas a an expression it does.  *)
+  let res = Tree_sitter_c_sharp.Parse.string expr_str in
   match res.errors with
   | [] -> res
   | _ ->
-      (* ugly: coupling: see grammar.js of csharp.
-       * todo: will need to adjust position information in parsing errors!
-      *)
-      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
-      Tree_sitter_c_sharp.Parse.string expr_str
+      Tree_sitter_c_sharp.Parse.string str
 
 let parse_pattern str =
   H.wrap_parser
