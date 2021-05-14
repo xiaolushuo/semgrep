@@ -3033,15 +3033,22 @@ let parse file =
            raise exn
     )
 
+let parse_expression_or_compilation_unit str =
+  let res = Tree_sitter_c_sharp.Parse.string str in
+  match res.errors with
+  | [] -> res
+  | _ ->
+      (* ugly: coupling: see grammar.js of csharp.
+       * todo: will need to adjust position information in parsing errors!
+      *)
+      let expr_str = "__SEMGREP_EXPRESSION " ^ str in
+      Tree_sitter_c_sharp.Parse.string expr_str
+
 let parse_pattern str =
-  (* ugly: coupling: see grammar.js of csharp.
-   * todo: will need to adjust position information in parsing errors!
-  *)
-  let str = "__SEMGREP_EXPRESSION " ^ str in
   H.wrap_parser
     (fun () ->
        Parallel.backtrace_when_exn := false;
-       Parallel.invoke Tree_sitter_c_sharp.Parse.string str ()
+       Parallel.invoke parse_expression_or_compilation_unit str ()
     )
     (fun cst ->
        let file = "<pattern>" in
