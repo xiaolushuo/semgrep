@@ -1302,21 +1302,26 @@ and m_ac_op tok op aargs_ac bargs_ac =
   let bs_left =
     match aapps with
     (* if there are no aapps we don't want to fail *)
-    | [] -> m_combs_unit bargs_ac
-    | _ -> m_combs_1to1 m_expr aapps bargs_ac
+    | [] -> m_comb_unit bargs_ac
+    | _ -> m_comb_unit bargs_ac |> m_comb_fold (m_comb_1to1 m_expr) aapps
   in
   (* try to match each variable with a unique disjoint subset of the remaining
    * bs_left, ellipsis (`...`) can match the empty set. *)
+  let num_bs_left = List.length bargs_ac - List.length aapps in
+  if num_bs_left > 4 then Printf.eprintf "DEBUG num_bs_left: %d\n" num_bs_left;
   match avars with
-  | [] -> m_combs_flatten bs_left
-  | _ ->
+  | [] -> m_comb_flatten bs_left
+  | [ Ellipsis _ ] -> m_comb_flatten bs_left
+  | ___many___ when num_bs_left <= 3 ->
       let m_var x bs' =
         match (x, H.undo_ac_matching_nf tok op bs') with
         | A.Ellipsis _, None -> return ()
         | ___mvar___, None -> fail ()
         | ___mvar___, Some op_bs' -> m_expr x op_bs'
       in
-      m_combs_1toN m_var avars bs_left |> m_combs_flatten
+      bs_left |> m_comb_fold (m_comb_1toN m_var) avars |> m_comb_flatten
+  | ___many___ ->
+      bs_left |> m_comb_fold (m_comb_1to1 m_expr) avars |> m_comb_flatten
 
 (*****************************************************************************)
 (* Type *)

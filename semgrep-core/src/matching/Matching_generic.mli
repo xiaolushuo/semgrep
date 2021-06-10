@@ -32,6 +32,17 @@ type 'a matcher = 'a -> 'a -> tin -> tout
 
 (*e: type [[Matching_generic.matcher]] *)
 
+type 'a comb_result = tin -> ('a * tout) list
+(** See [comb_matcher] *)
+
+type 'a comb_matcher = 'a -> 'a list -> 'a list comb_result
+(** A "combinatorial" matcher takes an element A, a list of elements Bs,
+ * and an input environment, and returns a list of pairs (Bs', tout),
+ * where tout represents a match between A and a sub-lit of Bs, and
+ * Bs' is a sub-list of Bs with the elements that were not matched.
+ *
+ * Used for Associative-Commutative (AC) matching! *)
+
 (* monadic combinators *)
 (*s: signature [[Matching_generic.monadic_bind]] *)
 val ( >>= ) : (tin -> tout) -> (unit -> tin -> tout) -> tin -> tout
@@ -159,25 +170,26 @@ val m_list_with_dots : 'a matcher -> ('a -> bool) -> bool -> 'a list matcher
 (*e: signature [[Matching_generic.m_list_with_dots]] *)
 val m_list_in_any_order : less_is_ok:bool -> 'a matcher -> 'a list matcher
 
-(* Unit operation for the [('a list * tout) list] monad *)
-val m_combs_unit : 'a list -> tin -> ('a list * tout) list
+(* Lift operation for the comb_result monad. *)
+val m_comb_unit : 'a -> 'a comb_result
 
-val m_combs_flatten : (tin -> ('a list * tout) list) -> tin -> tout
+(* Bind operation for the comb_result monad. *)
+val m_comb_bind : 'a comb_result -> ('a -> 'b comb_result) -> 'b comb_result
 
-val m_combs_1to1 :
-  'a matcher -> 'a list -> 'a list -> tin -> ('a list * tout) list
-(** [m_combs_1to1 m xs ys tin] computes all [k]-combinations of [ys] such that
+val m_comb_fold :
+  'a comb_matcher -> 'a list -> 'a list comb_result -> 'a list comb_result
+
+val m_comb_flatten : 'a comb_result -> tin -> tout
+
+val m_comb_1to1 : 'a matcher -> 'a -> 'a list -> 'a list comb_result
+(** [m_comb_1to1 m xs ys tin] computes all [k]-combinations of [ys] such that
  * each [x] matches a different [y], where [k = List.length xs]. Each combination
  * results in a pair [(ys', tout)] where [ys'] is the subset of [ys] that was not
  * match to any [x]. If [k < List.length ys] there will be no matches.  *)
 
-val m_combs_1toN :
-  ('a -> 'b list -> tin -> tout) ->
-  'a list ->
-  (tin -> ('b list * tout) list) ->
-  tin ->
-  ('b list * tout) list
-(** [m_combs_1toN m_1toN xs comb_matches] computes, for each [(ys, tout)] pair
+val m_comb_1toN :
+  ('a -> 'b list -> tin -> tout) -> 'a -> 'b list -> 'b list comb_result
+(** [m_comb_1toN m_1toN xs comb_matches] computes, for each [(ys, tout)] pair
  * in [comb_matches], all partitions of [ys] such that each [x] matches either
  * a different sub-list of [ys] or the empty list. *)
 
