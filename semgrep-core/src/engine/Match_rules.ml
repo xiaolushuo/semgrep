@@ -227,9 +227,9 @@ let lazy_force x = Lazy.force x [@@profiling]
 (* Adapters *)
 (*****************************************************************************)
 
-let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
-    =
- fun r (pattern, id, pstr) ->
+let (mini_rule_of_pattern :
+      R.xlang -> Pattern.t * Rule.pattern_id * string -> MR.t) =
+ fun xlang (pattern, id, pstr) ->
   {
     MR.id = string_of_int id;
     pattern;
@@ -239,7 +239,7 @@ let (mini_rule_of_pattern : R.t -> Pattern.t * Rule.pattern_id * string -> MR.t)
     message = "";
     severity = MR.Error;
     languages =
-      ( match r.R.languages with
+      ( match xlang with
       | R.L (x, xs) -> x :: xs
       | R.LNone | R.LGeneric -> raise Impossible );
     (* useful for debugging timeout *)
@@ -866,17 +866,19 @@ and match_range_with_pattern env r mvar opt_lang formula =
   | Some mval -> (
       let mval_range = MV.range_of_mvalue mval in
       match (opt_lang, mval) with
-      | Some lang, MV.Text (content, _)
-      | Some lang, MV.E (G.L (G.String (content, _))) ->
+      | Some lang, MV.Text (content, tok)
+      | Some lang, MV.E (G.L (G.String (content, tok))) ->
           (* The matched text will be interpreted according to `lang'. *)
           let lazy_ast_and_errors =
-            lazy_ast_of_string lang content (fun () ->
+            lazy_ast_of_string lang tok content (fun () ->
                 spf
                   "rule %s: metavariable-pattern: failed to fully parse the \
                    content of %s"
                   env.rule.id mvar)
           in
-          eval_nested_formula env env.xlang formula lazy_ast_and_errors
+          eval_nested_formula env
+            (R.L (lang, []))
+            formula lazy_ast_and_errors
             (lazy content)
             None
       | Some _lang, _mval ->
@@ -902,7 +904,19 @@ and match_range_with_pattern env r mvar opt_lang formula =
                 lazy_content
                 (Some { r with r = mval_range }) ) )
 
-and lazy_ast_of_string lang str warn_msg =
+and lazy_ast_of_string lang base_tok str warn_msg =
+  let fix_toks ast =
+    let base_loc = Parse_info.token_location_of_info base_tok in
+    let visitor =
+      Map_AST.mk_visitor
+        {
+          Map_AST.default_visitor with
+          Map_AST.kinfo =
+            (fun (_, _) tok -> Parse_info.adjust_info_wrt_base base_loc tok);
+        }
+    in
+    visitor.Map_AST.vprogram ast
+  in
   lazy
     (let ext =
        match Lang.ext_of_lang lang with x :: _ -> x | [] -> assert false
@@ -911,6 +925,7 @@ and lazy_ast_of_string lang str warn_msg =
          let { Parse_target.ast; errors; _ } =
            Parse_target.parse_and_resolve_name_use_pfff_or_treesitter lang file
          in
+         let ast = fix_toks ast in
          if errors <> [] then pr2 (warn_msg ());
          (ast, errors)))
 
@@ -920,7 +935,7 @@ and eval_nested_formula env xlang formula lazy_ast_and_errors lazy_content
      * we could maybe factorize things *)
   let xpatterns = xpatterns_in_formula formula in
   let res =
-    matches_of_xpatterns env.config env.rule env.equivalences
+    matches_of_xpatterns env.config xlang env.equivalences
       (env.file, xlang, lazy_ast_and_errors, lazy_content)
       xpatterns
   in
@@ -965,7 +980,7 @@ let check hook default_config rules equivs file_and_more =
                let xpatterns = xpatterns_in_formula formula in
                let config = r.settings ||| default_config in
                let res =
-                 matches_of_xpatterns config r equivs
+                 matches_of_xpatterns config r.languages equivs
                    (file, xlang, lazy_ast_and_errors, lazy_content)
                    xpatterns
                in

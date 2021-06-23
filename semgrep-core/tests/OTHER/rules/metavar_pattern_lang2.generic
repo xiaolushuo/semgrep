@@ -1,0 +1,11 @@
+<!-- ruleid:test-mvp-lang -->
+<script>
+if A and B:
+    foo()
+</script>
+
+<!-- OK:test-mvp-lang -->
+<script>
+if A and B:
+    bar()
+</script>

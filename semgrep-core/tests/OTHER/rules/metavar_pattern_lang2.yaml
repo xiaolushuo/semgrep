@@ -1,0 +1,16 @@
+rules:
+  - id: test-mvp-lang
+    languages:
+      - generic
+    message: Working!
+    patterns:
+      - pattern: |
+          <script>$...CODE</script>
+      - metavariable-pattern:
+          metavariable: $...CODE
+          language: python
+          patterns:
+              - pattern: |
+                  if A and $X:
+                      foo(...)
+    severity: WARNING
